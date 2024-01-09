@@ -1,35 +1,45 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import "./App.css";
+import Board from "./component/board";
 
-function App() {
-  const [count, setCount] = useState(0)
+const CanvasDrawing = () => {
+  const [brushColor, setBrushColor] = useState("black");
+  const [brushSize, setBrushSize] = useState<number>(5);
+
+  useEffect(() => {
+    console.log("CanvasDrawing ", brushSize);
+  }, [brushSize]);
 
   return (
-    <>
+    <div className="App">
+      <h1>Collaborative Whiteboard</h1>
       <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+        <Board brushColor={brushColor} brushSize={brushSize} />
+        <div className="tools">
+          <div>
+            <span>Color: </span>
+            <input
+              type="color"
+              value={brushColor}
+              onChange={(e) => setBrushColor(e.target.value)}
+            />
+          </div>
+          <div>
+            <span>Size: </span>
+            <input
+              type="range"
+              color="#fac176"
+              min="1"
+              max="100"
+              value={brushSize}
+              onChange={(e) => setBrushSize(Number(e.target.value))}
+            />
+            <span>{brushSize}</span>
+          </div>
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    </div>
+  );
+};
 
-export default App
+export default CanvasDrawing;
