@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import "./App.css";
-import Board from "./component/Board";
+import Board from "./component/board";
 
 const CanvasDrawing = () => {
   const [brushColor, setBrushColor] = useState("black");

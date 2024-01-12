@@ -27,10 +27,10 @@ const Board: React.FC<MyBoard> = (props) => {
         image.src = data;
 
         const canvas = canvasRef.current;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         const ctx = canvas.getContext("2d");
         // Draw the image onto the canvas
         image.onload = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
           ctx.drawImage(image, 0, 0);
         };
       });
@@ -123,13 +123,29 @@ const Board: React.FC<MyBoard> = (props) => {
     };
   }, []);
 
+  const handleEraserClick = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    // Clear the entire canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Emit a signal to inform other users about the eraser action
+    if (socket) {
+      socket.emit("canvasImage", canvas.toDataURL());
+    }
+  };
+
   return (
-    <canvas
-      ref={canvasRef}
-      width={windowSize[0] > 600 ? 600 : 300}
-      height={windowSize[1] > 400 ? 400 : 200}
-      style={{ backgroundColor: "white" }}
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        width={windowSize[0] > 800 ? 800 : 400}
+        height={windowSize[1] > 600 ? 600 : 300}
+        style={{ backgroundColor: "white" }}
+      />
+      <button onClick={handleEraserClick}>Eraser</button>
+    </>
   );
 };
 
