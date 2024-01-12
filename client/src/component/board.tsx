@@ -140,7 +140,7 @@ const Board: React.FC<MyBoard> = (props) => {
     <>
       <canvas
         ref={canvasRef}
-        width={windowSize[0] > 800 ? 800 : 400}
+        width={windowSize[0] > 1000 ? 800 : 400}
         height={windowSize[1] > 600 ? 600 : 300}
         style={{ backgroundColor: "white" }}
       />
