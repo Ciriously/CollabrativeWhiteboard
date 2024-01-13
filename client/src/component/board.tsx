@@ -1,5 +1,8 @@
 import React, { useRef, useEffect, useState } from "react";
 import io from "socket.io-client";
+import { Brush, defaultBrush, eraserBrush } from "./DrawingMaterials";
+import { Container, Grid } from "@mui/material";
+import DrawingContainer from "./DrawingContainer";
 
 interface MyBoard {
   brushColor: string;
@@ -7,10 +10,13 @@ interface MyBoard {
 }
 
 const Board: React.FC<MyBoard> = (props) => {
-  const { brushColor, brushSize } = props;
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
   const [socket, setSocket] = useState(null);
+  const [currentBrush, setCurrentBrush] = useState<Brush>(defaultBrush);
+  const [windowSize, setWindowSize] = useState([
+    window.innerWidth,
+    window.innerHeight,
+  ]);
 
   useEffect(() => {
     const newSocket = io("http://localhost:5000");
@@ -20,96 +26,86 @@ const Board: React.FC<MyBoard> = (props) => {
 
   useEffect(() => {
     if (socket) {
-      // Event listener for receiving canvas data from the socket
       socket.on("canvasImage", (data) => {
-        // Create an image object from the data URL
         const image = new Image();
         image.src = data;
 
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext("2d");
-        // Draw the image onto the canvas
-        image.onload = () => {
-          ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
-          ctx.drawImage(image, 0, 0);
-        };
+        const ctx = canvas ? canvas.getContext("2d") : null;
+
+        if (ctx) {
+          image.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0);
+          };
+        }
       });
     }
   }, [socket]);
 
-  // Function to start drawing
   useEffect(() => {
-    // Variables to store drawing state
     let isDrawing = false;
     let lastX = 0;
     let lastY = 0;
+
     const startDrawing = (e: { offsetX: number; offsetY: number }) => {
       isDrawing = true;
-
-      console.log(`drawing started`, brushColor, brushSize);
       [lastX, lastY] = [e.offsetX, e.offsetY];
     };
 
-    // Function to draw
     const draw = (e: { offsetX: number; offsetY: number }) => {
       if (!isDrawing) return;
 
       const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas ? canvas.getContext("2d") : null;
+
       if (ctx) {
         ctx.beginPath();
         ctx.moveTo(lastX, lastY);
         ctx.lineTo(e.offsetX, e.offsetY);
+        ctx.strokeStyle = currentBrush.color;
+        ctx.lineWidth = currentBrush.size;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
         ctx.stroke();
       }
 
       [lastX, lastY] = [e.offsetX, e.offsetY];
     };
 
-    // Function to end drawing
     const endDrawing = () => {
       const canvas = canvasRef.current;
-      const dataURL = canvas.toDataURL(); // Get the data URL of the canvas content
+      const dataURL = canvas ? canvas.toDataURL() : "";
 
-      // Send the dataURL or image data to the socket
-      // console.log('drawing ended')
       if (socket) {
         socket.emit("canvasImage", dataURL);
-        console.log("drawing ended");
+        console.log("Drawing ended");
       }
       isDrawing = false;
     };
 
     const canvas: HTMLCanvasElement | null = canvasRef.current;
-    const ctx = canvasRef.current?.getContext("2d");
+    const ctx = canvas ? canvas.getContext("2d") : null;
 
-    // Set initial drawing styles
     if (ctx) {
-      ctx.strokeStyle = brushColor;
-      ctx.lineWidth = brushSize;
-
+      ctx.strokeStyle = currentBrush.color;
+      ctx.lineWidth = currentBrush.size;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
     }
-    // Event listeners for drawing
-    canvas.addEventListener("mousedown", startDrawing);
-    canvas.addEventListener("mousemove", draw);
-    canvas.addEventListener("mouseup", endDrawing);
-    canvas.addEventListener("mouseout", endDrawing);
+
+    canvas?.addEventListener("mousedown", startDrawing);
+    canvas?.addEventListener("mousemove", draw);
+    canvas?.addEventListener("mouseup", endDrawing);
+    canvas?.addEventListener("mouseout", endDrawing);
 
     return () => {
-      // Clean up event listeners when component unmounts
-      canvas.removeEventListener("mousedown", startDrawing);
-      canvas.removeEventListener("mousemove", draw);
-      canvas.removeEventListener("mouseup", endDrawing);
-      canvas.removeEventListener("mouseout", endDrawing);
+      canvas?.removeEventListener("mousedown", startDrawing);
+      canvas?.removeEventListener("mousemove", draw);
+      canvas?.removeEventListener("mouseup", endDrawing);
+      canvas?.removeEventListener("mouseout", endDrawing);
     };
-  }, [brushColor, brushSize, socket]);
-
-  const [windowSize, setWindowSize] = useState([
-    window.innerWidth,
-    window.innerHeight,
-  ]);
+  }, [currentBrush, socket]);
 
   useEffect(() => {
     const handleWindowResize = () => {
@@ -125,27 +121,55 @@ const Board: React.FC<MyBoard> = (props) => {
 
   const handleEraserClick = () => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas ? canvas.getContext("2d") : null;
 
-    // Clear the entire canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setCurrentBrush(eraserBrush);
 
-    // Emit a signal to inform other users about the eraser action
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
     if (socket) {
-      socket.emit("canvasImage", canvas.toDataURL());
+      socket.emit("canvasImage", canvas?.toDataURL());
     }
   };
 
+  const handleColorChange = (newColor: string) => {
+    setCurrentBrush((prevBrush) => ({ ...prevBrush, color: newColor }));
+  };
+
+  const handleSizeChange = (newSize: number) => {
+    setCurrentBrush((prevBrush) => ({ ...prevBrush, size: newSize }));
+  };
+
   return (
-    <>
-      <canvas
-        ref={canvasRef}
-        width={windowSize[0] > 1000 ? 800 : 400}
-        height={windowSize[1] > 600 ? 600 : 300}
-        style={{ backgroundColor: "white" }}
-      />
-      <button onClick={handleEraserClick}>Eraser</button>
-    </>
+    <Container>
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={6}>
+          <canvas
+            ref={canvasRef}
+            width={windowSize[0] > 1000 ? 800 : 400}
+            height={windowSize[1] > 600 ? 600 : 300}
+            style={{ backgroundColor: "white" }}
+          />
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <DrawingContainer
+            currentBrush={currentBrush}
+            handleColorChange={(newColor) =>
+              setCurrentBrush((prevBrush) => ({
+                ...prevBrush,
+                color: newColor,
+              }))
+            }
+            handleSizeChange={(newSize) =>
+              setCurrentBrush((prevBrush) => ({ ...prevBrush, size: newSize }))
+            }
+            handleEraserClick={handleEraserClick}
+          />
+        </Grid>
+      </Grid>
+    </Container>
   );
 };
 

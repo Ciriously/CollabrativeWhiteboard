@@ -14,7 +14,7 @@
   align-items: center;
 }
 
-.tools {
+/* .tools {
   display: flex;
   flex-direction: row;
   justify-content: space-around;
@@ -23,7 +23,7 @@
   padding: 1em;
   background-color: black;
   color: white;
-}
+} */
 
 h1 {
   margin-bottom: 1rem;
